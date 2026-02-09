@@ -1,100 +1,146 @@
 // --- ESTADO (DADOS) ---
 let clocks = JSON.parse(localStorage.getItem('myClocks')) || [];
-let allCountriesList = []; 
-
-// --- INICIALIZAÇÃO ---
-window.onload = async function() {
-    const btnAdd = document.getElementById('btnAdd');
-    const input = document.getElementById('countryInput');
-    const datalist = document.getElementById('sugestoes');
-
-    // Estado inicial visual
-    btnAdd.textContent = "Carregando lista de países...";
-    
-    try {
-        // Busca a lista de países
-        const res = await fetch('https://restcountries.com/v3.1/all');
-        if (!res.ok) throw new Error('Erro ao baixar lista de países');
-        
-        const data = await res.json();
-
-        // Mapeia e organiza os dados
-        allCountriesList = data.map(country => ({
-            namePT: country.translations.por ? country.translations.por.common : country.name.common,
-            // Tenta pegar a lat/lng da capital, se falhar pega do país
-            latlng: (country.capitalInfo && country.capitalInfo.latlng) ? country.capitalInfo.latlng : country.latlng,
-            capital: country.capital ? country.capital[0] : 'Desconhecida'
-        }));
-
-        // Ordena alfabeticamente (A-Z)
-        allCountriesList.sort((a, b) => a.namePT.localeCompare(b.namePT));
-
-        // Preenche as opções de busca
-        datalist.innerHTML = '';
-        allCountriesList.forEach(c => {
-            const option = document.createElement('option');
-            option.value = c.namePT;
-            datalist.appendChild(option);
-        });
-
-        // Libera a interface
-        input.disabled = false;
-        btnAdd.disabled = false;
-        btnAdd.textContent = "Adicionar Relógio";
-        input.placeholder = "Digite: Brasil, Japão, França...";
-
-    } catch (error) {
-        console.error("Erro no load:", error);
-        btnAdd.textContent = "Erro ao carregar (Recarregue a página)";
-        alert("Não foi possível carregar a lista de países. Verifique sua internet.");
-    }
-
-    renderClocks(); 
-};
 
 // --- FUNÇÕES CRUD ---
 
-// 1. CREATE (Criar com nova API Open-Meteo)
+// 1. CREATE (Criar)
 async function handleAdd() {
     const input = document.getElementById('countryInput');
-    const loading = document.getElementById('loading');
-    const selectedName = input.value.trim();
+    const statusMsg = document.getElementById('statusMsg');
+    const term = input.value.trim();
 
-    if (!selectedName) return alert('Digite um nome de país!');
+    if (!term) return alert('Por favor, digite o nome de um país.');
 
-    // Busca na nossa lista local
-    const countryData = allCountriesList.find(c => c.namePT.toLowerCase() === selectedName.toLowerCase());
-
-    if (!countryData) {
-        return alert('País não encontrado. Selecione uma opção da lista que aparece ao digitar.');
-    }
-
-    loading.style.display = 'block';
-    loading.innerText = `Buscando horário em ${countryData.capital}...`;
+    // Feedback visual
+    statusMsg.style.display = 'block';
+    statusMsg.style.color = '#007bff';
+    statusMsg.innerText = `Procurando por "${term}"...`;
 
     try {
-        const [lat, lng] = countryData.latlng;
+        let countryData = null;
 
-        // --- MUDANÇA AQUI: Usando Open-Meteo (Mais estável) ---
-        // Solicitamos apenas o timezone baseado na latitude/longitude
+        // TENTATIVA 1: Busca pelo nome traduzido (ex: "Alemanha", "Japão")
+        // A API RestCountries tem um endpoint específico para isso (/translation/)
+        let res = await fetch(`https://restcountries.com/v3.1/translation/${term}`);
+        
+        // TENTATIVA 2: Se falhar (404), tenta pelo nome em inglês direto (caso o usuário digite "USA" ou "Japan")
+        if (!res.ok) {
+            res = await fetch(`https://restcountries.com/v3.1/name/${term}`);
+        }
+
+        if (!res.ok) throw new Error('País não encontrado');
+
+        const data = await res.json();
+        const country = data[0]; // Pega o primeiro resultado
+
+        // Define a Capital (ou usa o nome do país se não tiver capital, ex: Antártica)
+        const capitalName = country.capital ? country.capital[0] : 'Principal';
+        
+        // Pega coordenadas (Prioridade: CapitalInfo -> Latlng geral)
+        let lat, lng;
+        if (country.capitalInfo && country.capitalInfo.latlng) {
+            [lat, lng] = country.capitalInfo.latlng;
+        } else {
+            [lat, lng] = country.latlng;
+        }
+
+        // Feedback visual
+        statusMsg.innerText = `Encontrado! Buscando horário de ${capitalName}...`;
+
+        // BUSCA O FUSO HORÁRIO (Usando Open-Meteo que é estável e não precisa de chave)
         const resTime = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
         
-        if (!resTime.ok) throw new Error('Erro na API de Tempo');
+        if (!resTime.ok) throw new Error('Erro ao obter horário');
         
         const dataTime = await resTime.json();
-        
-        // O Open-Meteo devolve o fuso exato no campo "timezone" (ex: "America/Sao_Paulo")
-        const timeZoneIANA = dataTime.timezone; 
+        const timeZoneIANA = dataTime.timezone; // Ex: "Europe/Berlin"
 
+        // Nome para exibir: Tenta pegar a tradução em PT, se não der, usa o nome comum
+        const displayName = country.translations.por ? country.translations.por.common : country.name.common;
+
+        // Cria o objeto
         const newClock = {
             id: Date.now(),
-            name: countryData.namePT,
-            capital: countryData.capital,
-            timezoneId: timeZoneIANA 
+            name: displayName,
+            capital: capitalName,
+            timezoneId: timeZoneIANA
         };
 
+        // Salva e Limpa
         clocks.push(newClock);
         saveAndRender();
-        input.value = ''; 
+        
+        input.value = '';
+        statusMsg.style.display = 'none';
 
     } catch (error) {
+        console.error(error);
+        statusMsg.style.color = 'red';
+        statusMsg.innerText = 'Erro: País não encontrado ou falha na conexão. Tente verificar a grafia (ex: use acentos em Japão).';
+    }
+}
+
+// 2. READ (Ler/Renderizar)
+function renderClocks() {
+    const app = document.getElementById('app');
+    app.innerHTML = '';
+
+    if (clocks.length === 0) {
+        app.innerHTML = '<p style="text-align:center; grid-column: 1/-1; color: #777;">Nenhum relógio adicionado.</p>';
+        return;
+    }
+
+    clocks.forEach(clock => {
+        // A MÁGICA: Converte para o fuso horário salvo
+        const timeString = new Date().toLocaleTimeString('pt-BR', {
+            timeZone: clock.timezoneId,
+            hour: '2-digit', minute: '2-digit', second: '2-digit'
+        });
+
+        const card = document.createElement('div');
+        card.className = 'card';
+        card.innerHTML = `
+            <h2>${clock.name}</h2>
+            <p class="capital">${clock.capital}</p>
+            <div class="time">${timeString}</div>
+            <p class="timezone-info">${clock.timezoneId}</p>
+            <div class="actions">
+                <button class="btn-edit" onclick="handleUpdate(${clock.id})">Editar</button>
+                <button class="btn-delete" onclick="handleDelete(${clock.id})">Excluir</button>
+            </div>
+        `;
+        app.appendChild(card);
+    });
+}
+
+// 3. UPDATE (Atualizar)
+function handleUpdate(id) {
+    const newName = prompt("Novo nome para este local:");
+    if (newName) {
+        const clock = clocks.find(c => c.id === id);
+        if (clock) {
+            clock.name = newName;
+            saveAndRender();
+        }
+    }
+}
+
+// 4. DELETE (Excluir)
+function handleDelete(id) {
+    if (confirm('Remover este relógio?')) {
+        clocks = clocks.filter(c => c.id !== id);
+        saveAndRender();
+    }
+}
+
+// --- AUXILIARES ---
+function saveAndRender() {
+    localStorage.setItem('myClocks', JSON.stringify(clocks));
+    renderClocks();
+}
+
+// Atualiza a cada segundo
+setInterval(renderClocks, 1000);
+
+// Carregamento inicial
+renderClocks();

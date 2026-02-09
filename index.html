@@ -11,18 +11,15 @@
     <div class="container">
         <header>
             <h1>🌍 Relógio Mundial</h1>
-            <p>Comece a digitar o nome do país em Português para adicionar.</p>
+            <p>Digite o nome do país em Português para adicionar.</p>
         </header>
 
         <div class="form-control">
-            <input type="text" id="countryInput" list="sugestoes" placeholder="Digite: Brasil, Japão, França..." disabled>
-            <datalist id="sugestoes">
-                </datalist>
-            
-            <button onclick="handleAdd()" id="btnAdd" disabled>Carregando lista...</button>
+            <input type="text" id="countryInput" placeholder="Ex: Japão, França, Brasil...">
+            <button onclick="handleAdd()">Adicionar</button>
         </div>
 
-        <div id="loading" class="status-msg" style="display:none;">Buscando fuso horário exato...</div>
+        <div id="statusMsg" style="display:none; margin-bottom: 20px; font-weight: bold;"></div>
 
         <div id="app" class="clock-grid"></div>
     </div>
