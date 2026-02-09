@@ -1,5 +1,4 @@
 // --- ESTADO (DADOS) ---
-// Recupera do localStorage ao iniciar ou cria array vazio
 let clocks = JSON.parse(localStorage.getItem('myClocks')) || [];
 
 // --- FUNÇÕES CRUD ---
@@ -7,50 +6,81 @@ let clocks = JSON.parse(localStorage.getItem('myClocks')) || [];
 // 1. CREATE (Criar)
 async function handleAdd() {
     const input = document.getElementById('countryInput');
+    const loading = document.getElementById('loading');
     const countryName = input.value.trim();
 
     if (!countryName) return alert('Digite um nome de país!');
 
+    loading.style.display = 'block'; // Mostra "Buscando..."
+
     try {
-        // Busca dados na API RestCountries
-        const res = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
-        if (!res.ok) throw new Error('País não encontrado');
+        // PASSO 1: Buscar dados do país (Capital e Coordenadas)
+        const resCountry = await fetch(`https://restcountries.com/v3.1/name/${countryName}`);
+        if (!resCountry.ok) throw new Error('País não encontrado');
         
-        const data = await res.json();
-        const countryData = data[0]; // Pega o primeiro resultado
+        const dataCountry = await resCountry.json();
+        const country = dataCountry[0]; // Pega o primeiro resultado
+
+        // Preferência: Usar coordenadas da capital. Se não tiver, usa do país.
+        // A capital é mais precisa para o "horário oficial" que as pessoas esperam.
+        let lat, lng;
+        if (country.capitalInfo && country.capitalInfo.latlng) {
+            [lat, lng] = country.capitalInfo.latlng;
+        } else {
+            [lat, lng] = country.latlng;
+        }
+
+        const capitalName = country.capital ? country.capital[0] : 'Desconhecida';
+
+        // PASSO 2: Buscar o fuso horário exato (IANA Timezone) baseado na latitude/longitude
+        // Usamos a API gratuita TimeAPI.io
+        const resTime = await fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${lng}`);
+        if (!resTime.ok) throw new Error('Erro ao buscar fuso horário');
+        
+        const dataTime = await resTime.json();
+        const timeZoneIANA = dataTime.timeZone; // Ex: "America/Sao_Paulo"
 
         // Cria o objeto do novo relógio
         const newClock = {
-            id: Date.now(), // ID único baseado no tempo
-            name: countryData.name.common, // Nome oficial
-            timezone: countryData.timezones[0] // Pega o primeiro fuso horário do país
+            id: Date.now(),
+            name: country.name.common,
+            capital: capitalName,
+            timezoneId: timeZoneIANA // Salvamos o ID oficial (ex: America/Sao_Paulo)
         };
 
-        // Adiciona ao array e salva
         clocks.push(newClock);
         saveAndRender();
-        input.value = ''; // Limpa o input
+        input.value = ''; 
 
     } catch (error) {
-        alert('Erro: País não encontrado ou nome inválido (tente em inglês).');
+        console.error(error);
+        alert('Erro: País não encontrado ou falha na conexão. Tente digitar o nome em inglês (ex: Brazil).');
+    } finally {
+        loading.style.display = 'none'; // Esconde "Buscando..."
     }
 }
 
 // 2. READ (Ler/Renderizar)
 function renderClocks() {
     const app = document.getElementById('app');
-    app.innerHTML = ''; // Limpa o HTML atual
+    app.innerHTML = '';
 
-    // Gera o HTML para cada item da lista
     clocks.forEach(clock => {
-        const timeString = calculateTime(clock.timezone);
+        // A MÁGICA: O JavaScript converte a data atual para o fuso salvo
+        const timeString = new Date().toLocaleTimeString('pt-BR', {
+            timeZone: clock.timezoneId,
+            hour: '2-digit',
+            minute: '2-digit',
+            second: '2-digit'
+        });
 
         const card = document.createElement('div');
         card.className = 'card';
         card.innerHTML = `
             <h2>${clock.name}</h2>
+            <p class="capital">Capital: ${clock.capital}</p>
             <div class="time">${timeString}</div>
-            <p class="timezone-info">Fuso: ${clock.timezone}</p>
+            <p class="timezone-info">Zona: ${clock.timezoneId}</p>
             <div class="actions">
                 <button class="btn-edit" onclick="handleUpdate(${clock.id})">Editar Nome</button>
                 <button class="btn-delete" onclick="handleDelete(${clock.id})">Excluir</button>
@@ -62,12 +92,11 @@ function renderClocks() {
 
 // 3. UPDATE (Atualizar)
 function handleUpdate(id) {
-    const newName = prompt("Como você quer chamar este local?");
+    const newName = prompt("Mudar nome de exibição para:");
     if (newName) {
-        // Encontra o relógio pelo ID e atualiza o nome
-        const clockIndex = clocks.findIndex(c => c.id === id);
-        if (clockIndex > -1) {
-            clocks[clockIndex].name = newName;
+        const clock = clocks.find(c => c.id === id);
+        if (clock) {
+            clock.name = newName;
             saveAndRender();
         }
     }
@@ -75,46 +104,20 @@ function handleUpdate(id) {
 
 // 4. DELETE (Excluir)
 function handleDelete(id) {
-    if (confirm('Tem certeza que deseja remover este relógio?')) {
-        // Filtra o array removendo o item com o ID selecionado
+    if (confirm('Tem certeza?')) {
         clocks = clocks.filter(c => c.id !== id);
         saveAndRender();
     }
 }
 
-// --- FUNÇÕES AUXILIARES ---
-
-// Salva no LocalStorage e atualiza a tela
+// --- AUXILIARES ---
 function saveAndRender() {
     localStorage.setItem('myClocks', JSON.stringify(clocks));
     renderClocks();
 }
 
-// Calcula a hora baseada no offset UTC (Ex: "UTC-03:00")
-function calculateTime(offsetString) {
-    const now = new Date();
-    
-    // Se for UTC puro
-    if (offsetString === 'UTC') {
-        return now.toLocaleTimeString('pt-BR', { timeZone: 'UTC' });
-    }
-
-    // Tratamento simples de string "UTC-03:00" para converter em horas
-    // Nota: Para um app profissional, usaríamos bibliotecas, mas aqui faremos na mão para aprender
-    const operator = offsetString.includes('+') ? 1 : -1;
-    const parts = offsetString.replace('UTC', '').split(':');
-    const hours = parseInt(parts[0]) * operator;
-    const minutes = parts[1] ? parseInt(parts[1]) : 0;
-
-    // Ajusta a hora
-    const utcTime = now.getTime() + (now.getTimezoneOffset() * 60000);
-    const targetTime = new Date(utcTime + (3600000 * hours) + (60000 * minutes));
-
-    return targetTime.toLocaleTimeString('pt-BR');
-}
-
-// Atualiza os relógios a cada segundo
+// Atualiza os segundos a cada 1000ms (1 segundo)
 setInterval(renderClocks, 1000);
 
-// Carrega inicial
+// Carregamento inicial
 renderClocks();
