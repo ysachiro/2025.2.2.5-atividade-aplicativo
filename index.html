@@ -10,14 +10,16 @@
 
     <div class="container">
         <header>
-            <h1>🌍 Relógio Mundial</h1>
-            <p>Digite o nome de um país (em inglês) para adicionar seu horário.</p>
+            <h1>🌍 Relógio Mundial Preciso</h1>
+            <p>Digite o nome de um país (em inglês) para ver o horário da capital.</p>
         </header>
 
         <div class="form-control">
-            <input type="text" id="countryInput" placeholder="Ex: Brazil, Japan, Italy...">
+            <input type="text" id="countryInput" placeholder="Ex: Brazil, Japan, France...">
             <button onclick="handleAdd()">Adicionar Relógio</button>
         </div>
+
+        <div id="loading" style="display:none; color: #007bff; margin-bottom: 20px;">Buscando fuso horário...</div>
 
         <div id="app" class="clock-grid"></div>
     </div>
