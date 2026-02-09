@@ -1,85 +1,94 @@
 // --- ESTADO (DADOS) ---
 let clocks = JSON.parse(localStorage.getItem('myClocks')) || [];
-let allCountriesList = []; // Vai guardar a lista de países para o autocomplete
+let allCountriesList = []; 
 
 // --- INICIALIZAÇÃO ---
-// Assim que a página abre, busca todos os países para preencher o autocomplete
 window.onload = async function() {
     const btnAdd = document.getElementById('btnAdd');
     const input = document.getElementById('countryInput');
+    const datalist = document.getElementById('sugestoes');
+
+    // Estado inicial visual
+    btnAdd.textContent = "Carregando lista de países...";
     
     try {
+        // Busca a lista de países
         const res = await fetch('https://restcountries.com/v3.1/all');
+        if (!res.ok) throw new Error('Erro ao baixar lista de países');
+        
         const data = await res.json();
 
-        // Mapeia apenas o necessário: Nome em PT-BR e Coordenadas
-        allCountriesList = data.map(country => {
-            return {
-                namePT: country.translations.por ? country.translations.por.common : country.name.common,
-                latlng: country.capitalInfo.latlng ? country.capitalInfo.latlng : country.latlng,
-                capital: country.capital ? country.capital[0] : 'Desconhecida'
-            };
-        });
+        // Mapeia e organiza os dados
+        allCountriesList = data.map(country => ({
+            namePT: country.translations.por ? country.translations.por.common : country.name.common,
+            // Tenta pegar a lat/lng da capital, se falhar pega do país
+            latlng: (country.capitalInfo && country.capitalInfo.latlng) ? country.capitalInfo.latlng : country.latlng,
+            capital: country.capital ? country.capital[0] : 'Desconhecida'
+        }));
 
-        // Ordena alfabeticamente
+        // Ordena alfabeticamente (A-Z)
         allCountriesList.sort((a, b) => a.namePT.localeCompare(b.namePT));
 
-        // Preenche o <datalist> no HTML
-        const datalist = document.getElementById('sugestoes');
+        // Preenche as opções de busca
+        datalist.innerHTML = '';
         allCountriesList.forEach(c => {
             const option = document.createElement('option');
             option.value = c.namePT;
             datalist.appendChild(option);
         });
 
-        // Libera o uso
+        // Libera a interface
         input.disabled = false;
         btnAdd.disabled = false;
         btnAdd.textContent = "Adicionar Relógio";
         input.placeholder = "Digite: Brasil, Japão, França...";
 
     } catch (error) {
-        console.error("Erro ao carregar países:", error);
-        btnAdd.textContent = "Erro de conexão";
+        console.error("Erro no load:", error);
+        btnAdd.textContent = "Erro ao carregar (Recarregue a página)";
+        alert("Não foi possível carregar a lista de países. Verifique sua internet.");
     }
 
-    renderClocks(); // Renderiza os relógios salvos
+    renderClocks(); 
 };
 
 // --- FUNÇÕES CRUD ---
 
-// 1. CREATE (Criar)
+// 1. CREATE (Criar com nova API Open-Meteo)
 async function handleAdd() {
     const input = document.getElementById('countryInput');
     const loading = document.getElementById('loading');
-    const selectedName = input.value.trim(); // O nome em Português que o usuário digitou
+    const selectedName = input.value.trim();
 
     if (!selectedName) return alert('Digite um nome de país!');
 
-    // Busca o país na nossa lista local (pelo nome em Português)
+    // Busca na nossa lista local
     const countryData = allCountriesList.find(c => c.namePT.toLowerCase() === selectedName.toLowerCase());
 
     if (!countryData) {
-        return alert('País não encontrado na lista. Selecione uma das sugestões.');
+        return alert('País não encontrado. Selecione uma opção da lista que aparece ao digitar.');
     }
 
     loading.style.display = 'block';
+    loading.innerText = `Buscando horário em ${countryData.capital}...`;
 
     try {
-        // Já temos as coordenadas salvas na lista, só precisamos do TimeZone ID
         const [lat, lng] = countryData.latlng;
 
-        // API para pegar o ID do fuso horário (ex: "Asia/Tokyo")
-        const resTime = await fetch(`https://timeapi.io/api/TimeZone/coordinate?latitude=${lat}&longitude=${lng}`);
+        // --- MUDANÇA AQUI: Usando Open-Meteo (Mais estável) ---
+        // Solicitamos apenas o timezone baseado na latitude/longitude
+        const resTime = await fetch(`https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`);
         
-        if (!resTime.ok) throw new Error('Erro ao buscar fuso horário');
+        if (!resTime.ok) throw new Error('Erro na API de Tempo');
         
         const dataTime = await resTime.json();
-        const timeZoneIANA = dataTime.timeZone; 
+        
+        // O Open-Meteo devolve o fuso exato no campo "timezone" (ex: "America/Sao_Paulo")
+        const timeZoneIANA = dataTime.timezone; 
 
         const newClock = {
             id: Date.now(),
-            name: countryData.namePT, // Salva o nome em Português
+            name: countryData.namePT,
             capital: countryData.capital,
             timezoneId: timeZoneIANA 
         };
@@ -89,66 +98,3 @@ async function handleAdd() {
         input.value = ''; 
 
     } catch (error) {
-        console.error(error);
-        alert('Erro ao conectar com servidor de hora.');
-    } finally {
-        loading.style.display = 'none';
-    }
-}
-
-// 2. READ (Ler/Renderizar)
-function renderClocks() {
-    const app = document.getElementById('app');
-    app.innerHTML = '';
-
-    clocks.forEach(clock => {
-        // Cria a data baseada no fuso horário salvo
-        const timeString = new Date().toLocaleTimeString('pt-BR', {
-            timeZone: clock.timezoneId,
-            hour: '2-digit', minute: '2-digit', second: '2-digit'
-        });
-
-        const card = document.createElement('div');
-        card.className = 'card';
-        card.innerHTML = `
-            <h2>${clock.name}</h2>
-            <p class="capital">${clock.capital}</p>
-            <div class="time">${timeString}</div>
-            <p class="timezone-info">${clock.timezoneId}</p>
-            <div class="actions">
-                <button class="btn-edit" onclick="handleUpdate(${clock.id})">Editar</button>
-                <button class="btn-delete" onclick="handleDelete(${clock.id})">Excluir</button>
-            </div>
-        `;
-        app.appendChild(card);
-    });
-}
-
-// 3. UPDATE (Atualizar Nome)
-function handleUpdate(id) {
-    const newName = prompt("Novo nome para este relógio:");
-    if (newName) {
-        const clock = clocks.find(c => c.id === id);
-        if (clock) {
-            clock.name = newName;
-            saveAndRender();
-        }
-    }
-}
-
-// 4. DELETE (Excluir)
-function handleDelete(id) {
-    if (confirm('Tem certeza?')) {
-        clocks = clocks.filter(c => c.id !== id);
-        saveAndRender();
-    }
-}
-
-// --- AUXILIARES ---
-function saveAndRender() {
-    localStorage.setItem('myClocks', JSON.stringify(clocks));
-    renderClocks();
-}
-
-// Atualiza o relógio a cada segundo
-setInterval(renderClocks, 1000);
