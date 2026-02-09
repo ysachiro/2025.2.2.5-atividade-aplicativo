@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relógio Mundial - CRUD</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <div class="container">
+        <header>
+            <h1>🌍 Relógio Mundial</h1>
+            <p>Digite o nome de um país (em inglês) para adicionar seu horário.</p>
+        </header>
+
+        <div class="form-control">
+            <input type="text" id="countryInput" placeholder="Ex: Brazil, Japan, Italy...">
+            <button onclick="handleAdd()">Adicionar Relógio</button>
+        </div>
+
+        <div id="app" class="clock-grid"></div>
+    </div>
+
+    <script src="script.js"></script>
+</body>
+</html>
