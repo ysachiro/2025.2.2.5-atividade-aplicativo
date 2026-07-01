@@ -125,6 +125,158 @@ const COUNTRY_TIMEZONES = {
     YT: 'Indian/Mayotte', ZA: 'Africa/Johannesburg', ZM: 'Africa/Lusaka', ZW: 'Africa/Harare',
 };
 
+// Dataset local dos países mais comuns (nome PT/EN + capital). Resolve o país
+// instantaneamente, sem rede — a Rest Countries só é usada como reserva para
+// países fora desta lista, já que a API externa pode ficar indisponível.
+const LOCAL_COUNTRIES = [
+    { cca2: 'AR', namePt: 'Argentina', nameEn: 'Argentina', capital: 'Buenos Aires' },
+    { cca2: 'AT', namePt: 'Áustria', nameEn: 'Austria', capital: 'Vienna' },
+    { cca2: 'AU', namePt: 'Austrália', nameEn: 'Australia', capital: 'Canberra' },
+    { cca2: 'BE', namePt: 'Bélgica', nameEn: 'Belgium', capital: 'Brussels' },
+    { cca2: 'BO', namePt: 'Bolívia', nameEn: 'Bolivia', capital: 'La Paz' },
+    { cca2: 'BR', namePt: 'Brasil', nameEn: 'Brazil', capital: 'Brasília' },
+    { cca2: 'CA', namePt: 'Canadá', nameEn: 'Canada', capital: 'Ottawa' },
+    { cca2: 'CH', namePt: 'Suíça', nameEn: 'Switzerland', capital: 'Bern' },
+    { cca2: 'CL', namePt: 'Chile', nameEn: 'Chile', capital: 'Santiago' },
+    { cca2: 'CN', namePt: 'China', nameEn: 'China', capital: 'Beijing' },
+    { cca2: 'CO', namePt: 'Colômbia', nameEn: 'Colombia', capital: 'Bogotá' },
+    { cca2: 'CR', namePt: 'Costa Rica', nameEn: 'Costa Rica', capital: 'San José' },
+    { cca2: 'CU', namePt: 'Cuba', nameEn: 'Cuba', capital: 'Havana' },
+    { cca2: 'CZ', namePt: 'República Tcheca', nameEn: 'Czechia', capital: 'Prague' },
+    { cca2: 'DE', namePt: 'Alemanha', nameEn: 'Germany', capital: 'Berlin' },
+    { cca2: 'DK', namePt: 'Dinamarca', nameEn: 'Denmark', capital: 'Copenhagen' },
+    { cca2: 'DO', namePt: 'República Dominicana', nameEn: 'Dominican Republic', capital: 'Santo Domingo' },
+    { cca2: 'EC', namePt: 'Equador', nameEn: 'Ecuador', capital: 'Quito' },
+    { cca2: 'EG', namePt: 'Egito', nameEn: 'Egypt', capital: 'Cairo' },
+    { cca2: 'ES', namePt: 'Espanha', nameEn: 'Spain', capital: 'Madrid' },
+    { cca2: 'FI', namePt: 'Finlândia', nameEn: 'Finland', capital: 'Helsinki' },
+    { cca2: 'FR', namePt: 'França', nameEn: 'France', capital: 'Paris' },
+    { cca2: 'GB', namePt: 'Reino Unido', nameEn: 'United Kingdom', capital: 'London' },
+    { cca2: 'GR', namePt: 'Grécia', nameEn: 'Greece', capital: 'Athens' },
+    { cca2: 'GT', namePt: 'Guatemala', nameEn: 'Guatemala', capital: 'Guatemala City' },
+    { cca2: 'HN', namePt: 'Honduras', nameEn: 'Honduras', capital: 'Tegucigalpa' },
+    { cca2: 'HT', namePt: 'Haiti', nameEn: 'Haiti', capital: 'Port-au-Prince' },
+    { cca2: 'HU', namePt: 'Hungria', nameEn: 'Hungary', capital: 'Budapest' },
+    { cca2: 'ID', namePt: 'Indonésia', nameEn: 'Indonesia', capital: 'Jakarta' },
+    { cca2: 'IE', namePt: 'Irlanda', nameEn: 'Ireland', capital: 'Dublin' },
+    { cca2: 'IL', namePt: 'Israel', nameEn: 'Israel', capital: 'Jerusalem' },
+    { cca2: 'IN', namePt: 'Índia', nameEn: 'India', capital: 'New Delhi' },
+    { cca2: 'IQ', namePt: 'Iraque', nameEn: 'Iraq', capital: 'Baghdad' },
+    { cca2: 'IR', namePt: 'Irã', nameEn: 'Iran', capital: 'Tehran' },
+    { cca2: 'IS', namePt: 'Islândia', nameEn: 'Iceland', capital: 'Reykjavik' },
+    { cca2: 'IT', namePt: 'Itália', nameEn: 'Italy', capital: 'Rome' },
+    { cca2: 'JM', namePt: 'Jamaica', nameEn: 'Jamaica', capital: 'Kingston' },
+    { cca2: 'JO', namePt: 'Jordânia', nameEn: 'Jordan', capital: 'Amman' },
+    { cca2: 'JP', namePt: 'Japão', nameEn: 'Japan', capital: 'Tokyo' },
+    { cca2: 'KE', namePt: 'Quênia', nameEn: 'Kenya', capital: 'Nairobi' },
+    { cca2: 'KH', namePt: 'Camboja', nameEn: 'Cambodia', capital: 'Phnom Penh' },
+    { cca2: 'KR', namePt: 'Coreia do Sul', nameEn: 'South Korea', capital: 'Seoul' },
+    { cca2: 'KP', namePt: 'Coreia do Norte', nameEn: 'North Korea', capital: 'Pyongyang' },
+    { cca2: 'KW', namePt: 'Kuwait', nameEn: 'Kuwait', capital: 'Kuwait City' },
+    { cca2: 'KZ', namePt: 'Cazaquistão', nameEn: 'Kazakhstan', capital: 'Astana' },
+    { cca2: 'LA', namePt: 'Laos', nameEn: 'Laos', capital: 'Vientiane' },
+    { cca2: 'LB', namePt: 'Líbano', nameEn: 'Lebanon', capital: 'Beirut' },
+    { cca2: 'LK', namePt: 'Sri Lanka', nameEn: 'Sri Lanka', capital: 'Colombo' },
+    { cca2: 'MA', namePt: 'Marrocos', nameEn: 'Morocco', capital: 'Rabat' },
+    { cca2: 'MG', namePt: 'Madagascar', nameEn: 'Madagascar', capital: 'Antananarivo' },
+    { cca2: 'MM', namePt: 'Myanmar', nameEn: 'Myanmar', capital: 'Naypyidaw' },
+    { cca2: 'MN', namePt: 'Mongólia', nameEn: 'Mongolia', capital: 'Ulaanbaatar' },
+    { cca2: 'MX', namePt: 'México', nameEn: 'Mexico', capital: 'Mexico City' },
+    { cca2: 'MY', namePt: 'Malásia', nameEn: 'Malaysia', capital: 'Kuala Lumpur' },
+    { cca2: 'NG', namePt: 'Nigéria', nameEn: 'Nigeria', capital: 'Abuja' },
+    { cca2: 'NI', namePt: 'Nicarágua', nameEn: 'Nicaragua', capital: 'Managua' },
+    { cca2: 'NL', namePt: 'Holanda', nameEn: 'Netherlands', capital: 'Amsterdam' },
+    { cca2: 'NO', namePt: 'Noruega', nameEn: 'Norway', capital: 'Oslo' },
+    { cca2: 'NP', namePt: 'Nepal', nameEn: 'Nepal', capital: 'Kathmandu' },
+    { cca2: 'NZ', namePt: 'Nova Zelândia', nameEn: 'New Zealand', capital: 'Wellington' },
+    { cca2: 'PA', namePt: 'Panamá', nameEn: 'Panama', capital: 'Panama City' },
+    { cca2: 'PE', namePt: 'Peru', nameEn: 'Peru', capital: 'Lima' },
+    { cca2: 'PH', namePt: 'Filipinas', nameEn: 'Philippines', capital: 'Manila' },
+    { cca2: 'PK', namePt: 'Paquistão', nameEn: 'Pakistan', capital: 'Islamabad' },
+    { cca2: 'PL', namePt: 'Polônia', nameEn: 'Poland', capital: 'Warsaw' },
+    { cca2: 'PT', namePt: 'Portugal', nameEn: 'Portugal', capital: 'Lisbon' },
+    { cca2: 'PY', namePt: 'Paraguai', nameEn: 'Paraguay', capital: 'Asunción' },
+    { cca2: 'QA', namePt: 'Catar', nameEn: 'Qatar', capital: 'Doha' },
+    { cca2: 'RO', namePt: 'Romênia', nameEn: 'Romania', capital: 'Bucharest' },
+    { cca2: 'RS', namePt: 'Sérvia', nameEn: 'Serbia', capital: 'Belgrade' },
+    { cca2: 'RU', namePt: 'Rússia', nameEn: 'Russia', capital: 'Moscow' },
+    { cca2: 'SA', namePt: 'Arábia Saudita', nameEn: 'Saudi Arabia', capital: 'Riyadh' },
+    { cca2: 'SE', namePt: 'Suécia', nameEn: 'Sweden', capital: 'Stockholm' },
+    { cca2: 'SG', namePt: 'Singapura', nameEn: 'Singapore', capital: 'Singapore' },
+    { cca2: 'SV', namePt: 'El Salvador', nameEn: 'El Salvador', capital: 'San Salvador' },
+    { cca2: 'SY', namePt: 'Síria', nameEn: 'Syria', capital: 'Damascus' },
+    { cca2: 'TH', namePt: 'Tailândia', nameEn: 'Thailand', capital: 'Bangkok' },
+    { cca2: 'TN', namePt: 'Tunísia', nameEn: 'Tunisia', capital: 'Tunis' },
+    { cca2: 'TR', namePt: 'Turquia', nameEn: 'Turkey', capital: 'Ankara' },
+    { cca2: 'TW', namePt: 'Taiwan', nameEn: 'Taiwan', capital: 'Taipei' },
+    { cca2: 'UA', namePt: 'Ucrânia', nameEn: 'Ukraine', capital: 'Kyiv' },
+    { cca2: 'US', namePt: 'Estados Unidos', nameEn: 'United States', capital: 'Washington, D.C.' },
+    { cca2: 'UY', namePt: 'Uruguai', nameEn: 'Uruguay', capital: 'Montevideo' },
+    { cca2: 'VE', namePt: 'Venezuela', nameEn: 'Venezuela', capital: 'Caracas' },
+    { cca2: 'VN', namePt: 'Vietnã', nameEn: 'Vietnam', capital: 'Hanoi' },
+    { cca2: 'ZA', namePt: 'África do Sul', nameEn: 'South Africa', capital: 'Pretoria' },
+    { cca2: 'AO', namePt: 'Angola', nameEn: 'Angola', capital: 'Luanda' },
+    { cca2: 'MZ', namePt: 'Moçambique', nameEn: 'Mozambique', capital: 'Maputo' },
+    { cca2: 'CV', namePt: 'Cabo Verde', nameEn: 'Cabo Verde', capital: 'Praia' },
+    { cca2: 'GH', namePt: 'Gana', nameEn: 'Ghana', capital: 'Accra' },
+    { cca2: 'ET', namePt: 'Etiópia', nameEn: 'Ethiopia', capital: 'Addis Ababa' },
+    { cca2: 'DZ', namePt: 'Argélia', nameEn: 'Algeria', capital: 'Algiers' },
+    { cca2: 'NA', namePt: 'Namíbia', nameEn: 'Namibia', capital: 'Windhoek' },
+    { cca2: 'ZW', namePt: 'Zimbábue', nameEn: 'Zimbabwe', capital: 'Harare' },
+    { cca2: 'AE', namePt: 'Emirados Árabes Unidos', nameEn: 'United Arab Emirates', capital: 'Abu Dhabi' },
+    { cca2: 'BD', namePt: 'Bangladesh', nameEn: 'Bangladesh', capital: 'Dhaka' },
+    { cca2: 'BG', namePt: 'Bulgária', nameEn: 'Bulgaria', capital: 'Sofia' },
+    { cca2: 'HR', namePt: 'Croácia', nameEn: 'Croatia', capital: 'Zagreb' },
+    { cca2: 'GE', namePt: 'Geórgia', nameEn: 'Georgia', capital: 'Tbilisi' },
+    { cca2: 'AM', namePt: 'Armênia', nameEn: 'Armenia', capital: 'Yerevan' },
+    { cca2: 'AZ', namePt: 'Azerbaijão', nameEn: 'Azerbaijan', capital: 'Baku' },
+    { cca2: 'CY', namePt: 'Chipre', nameEn: 'Cyprus', capital: 'Nicosia' },
+    { cca2: 'LT', namePt: 'Lituânia', nameEn: 'Lithuania', capital: 'Vilnius' },
+    { cca2: 'LV', namePt: 'Letônia', nameEn: 'Latvia', capital: 'Riga' },
+    { cca2: 'EE', namePt: 'Estônia', nameEn: 'Estonia', capital: 'Tallinn' },
+    { cca2: 'SK', namePt: 'Eslováquia', nameEn: 'Slovakia', capital: 'Bratislava' },
+    { cca2: 'SI', namePt: 'Eslovênia', nameEn: 'Slovenia', capital: 'Ljubljana' },
+    { cca2: 'LU', namePt: 'Luxemburgo', nameEn: 'Luxembourg', capital: 'Luxembourg' },
+    { cca2: 'MT', namePt: 'Malta', nameEn: 'Malta', capital: 'Valletta' },
+    { cca2: 'BY', namePt: 'Belarus', nameEn: 'Belarus', capital: 'Minsk' },
+    { cca2: 'MD', namePt: 'Moldávia', nameEn: 'Moldova', capital: 'Chisinau' },
+    { cca2: 'AL', namePt: 'Albânia', nameEn: 'Albania', capital: 'Tirana' },
+    { cca2: 'MK', namePt: 'Macedônia do Norte', nameEn: 'North Macedonia', capital: 'Skopje' },
+    { cca2: 'BA', namePt: 'Bósnia e Herzegovina', nameEn: 'Bosnia and Herzegovina', capital: 'Sarajevo' },
+    { cca2: 'ME', namePt: 'Montenegro', nameEn: 'Montenegro', capital: 'Podgorica' },
+    { cca2: 'XK', namePt: 'Kosovo', nameEn: 'Kosovo', capital: 'Pristina' },
+];
+
+// Apelidos extras (siglas, nomes populares) além do nome PT/EN/código do país.
+const EXTRA_ALIASES = {
+    US: ['eua', 'usa', 'america', 'united states of america'],
+    GB: ['uk', 'inglaterra', 'england', 'britain', 'great britain'],
+    NL: ['paises baixos', 'países baixos'],
+    AE: ['uae', 'emirados'],
+    CZ: ['tcheca', 'czech republic'],
+    KR: ['korea'],
+    KP: ['north korea'],
+};
+
+function normalize(value) {
+    return value.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
+}
+
+function buildLocalCountryIndex() {
+    const index = new Map();
+    LOCAL_COUNTRIES.forEach(country => {
+        const keys = [country.namePt, country.nameEn, country.cca2, ...(EXTRA_ALIASES[country.cca2] || [])];
+        keys.forEach(key => index.set(normalize(key), country));
+    });
+    return index;
+}
+
+const LOCAL_COUNTRY_INDEX = buildLocalCountryIndex();
+
+function findLocalCountry(term) {
+    return LOCAL_COUNTRY_INDEX.get(normalize(term)) || null;
+}
+
 // --- ESTADO ---
 
 const state = {
@@ -243,7 +395,27 @@ async function fetchJSON(url) {
 
 class AppError extends Error {}
 
-async function fetchCountry(term) {
+// Resolve o país digitado: tenta o dataset local primeiro (instantâneo, sem
+// rede) e só usa a Rest Countries como reserva para o que não estiver nele.
+async function resolveCountry(term) {
+    const local = findLocalCountry(term);
+    if (local) {
+        const timezoneId = COUNTRY_TIMEZONES[local.cca2];
+        return {
+            cca2: local.cca2,
+            namePt: local.namePt,
+            nameEn: local.nameEn,
+            capital: local.capital,
+            tzType: 'iana',
+            timezoneId,
+            timezoneLabel: timezoneId,
+        };
+    }
+
+    return fetchRemoteCountry(term);
+}
+
+async function fetchRemoteCountry(term) {
     let res = await fetchJSON(`https://restcountries.com/v3.1/translation/${encodeURIComponent(term)}`);
 
     if (!res.ok) {
@@ -259,7 +431,20 @@ async function fetchCountry(term) {
         throw new AppError(t().errNotFound);
     }
 
-    return data[0];
+    const country = data[0];
+    const capitalName = country.capital ? country.capital[0] : (country.translations?.por?.common || country.name.common);
+    const timezone = resolveTimezone(country);
+
+    return {
+        cca2: country.cca2,
+        namePt: country.translations?.por?.common || country.name.common,
+        nameEn: country.name.common,
+        capital: capitalName,
+        tzType: timezone.type,
+        timezoneId: timezone.timezoneId,
+        offsetMinutes: timezone.offsetMinutes,
+        timezoneLabel: timezone.label,
+    };
 }
 
 // Resolve o fuso horário do país sem precisar de uma segunda chamada de rede:
@@ -309,27 +494,24 @@ async function onAddSubmit(event) {
     showStatus(t().searching(term), false);
 
     try {
-        const country = await fetchCountry(term);
+        const country = await resolveCountry(term);
 
         if (isDuplicate(country.cca2)) {
             throw new AppError(t().errDuplicate(term));
         }
 
-        const capitalName = country.capital ? country.capital[0] : (country.translations?.por?.common || country.name.common);
-        const timezone = resolveTimezone(country);
-
-        showStatus(t().found(capitalName), false);
+        showStatus(t().found(country.capital), false);
 
         const newClock = {
             id: Date.now(),
             countryCode: country.cca2,
-            namePt: country.translations?.por?.common || country.name.common,
-            nameEn: country.name.common,
-            capital: capitalName,
-            tzType: timezone.type,
-            timezoneId: timezone.timezoneId,
-            offsetMinutes: timezone.offsetMinutes,
-            timezoneLabel: timezone.label,
+            namePt: country.namePt,
+            nameEn: country.nameEn,
+            capital: country.capital,
+            tzType: country.tzType,
+            timezoneId: country.timezoneId,
+            offsetMinutes: country.offsetMinutes,
+            timezoneLabel: country.timezoneLabel,
         };
 
         state.clocks.push(newClock);
