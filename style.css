@@ -6,6 +6,14 @@ body { background-color: #f0f2f5; color: #333; display: flex; justify-content: c
 
 header { margin-bottom: 30px; }
 
+.header-top { display: flex; align-items: center; justify-content: center; gap: 15px; position: relative; }
+
+.btn-lang {
+    position: absolute; right: 0; padding: 6px 14px; font-size: 0.8rem;
+    background-color: transparent; color: #007bff; border: 1px solid #007bff;
+}
+.btn-lang:hover:not(:disabled) { background-color: #007bff; color: white; }
+
 .form-control { display: flex; gap: 10px; justify-content: center; margin-bottom: 20px; }
 
 input { 
@@ -21,7 +29,11 @@ button {
 button:disabled { background-color: #ccc; cursor: not-allowed; }
 button:hover:not(:disabled) { background-color: #0056b3; }
 
-.status-msg { color: #007bff; margin-bottom: 20px; font-weight: bold; }
+.status-msg { margin-bottom: 20px; font-weight: bold; }
+.status-msg.status-info { color: #007bff; }
+.status-msg.status-error { color: #dc3545; }
+
+.empty-state { grid-column: 1/-1; text-align: center; color: #777; }
 
 /* Grid dos Relógios */
 .clock-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(250px, 1fr)); gap: 20px; }

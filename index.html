@@ -10,16 +10,19 @@
 
     <div class="container">
         <header>
-            <h1>🌍 Relógio Mundial</h1>
-            <p>Digite o nome do país em Português para adicionar.</p>
+            <div class="header-top">
+                <h1 id="appTitle">🌍 Relógio Mundial</h1>
+                <button id="langToggle" type="button" class="btn-lang" aria-label="Change language"></button>
+            </div>
+            <p id="appSubtitle">Digite o nome do país em Português para adicionar.</p>
         </header>
 
-        <div class="form-control">
-            <input type="text" id="countryInput" placeholder="Ex: Japão, França, Brasil...">
-            <button onclick="handleAdd()">Adicionar</button>
-        </div>
+        <form id="addForm" class="form-control" novalidate>
+            <input type="text" id="countryInput" placeholder="Ex: Japão, França, Brasil..." autocomplete="off">
+            <button id="addBtn" type="submit">Adicionar</button>
+        </form>
 
-        <div id="statusMsg" style="display:none; margin-bottom: 20px; font-weight: bold;"></div>
+        <div id="statusMsg" class="status-msg" role="status" aria-live="polite" hidden></div>
 
         <div id="app" class="clock-grid"></div>
     </div>
