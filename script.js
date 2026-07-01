@@ -26,8 +26,7 @@ const I18N = {
         errNotFound: 'País não encontrado. Verifique a grafia (ex: use acentos em Japão).',
         errTimeout: 'A busca demorou demais. Verifique sua conexão e tente novamente.',
         errNetwork: 'Falha na conexão. Verifique sua internet e tente novamente.',
-        errTimezone: 'Não foi possível obter o horário deste país.',
-        errNoCoords: 'Não foi possível localizar as coordenadas deste país.',
+        errTimezone: 'Não foi possível determinar o fuso horário deste país.',
         errDuplicate: term => `"${term}" já foi adicionado.`,
         errGeneric: 'Ocorreu um erro inesperado. Tente novamente.',
         promptNewName: 'Novo nome para este local:',
@@ -53,14 +52,77 @@ const I18N = {
         errNotFound: 'Country not found. Check the spelling and try again.',
         errTimeout: 'The search took too long. Check your connection and try again.',
         errNetwork: 'Connection failed. Check your internet and try again.',
-        errTimezone: 'Could not fetch the time for this country.',
-        errNoCoords: 'Could not find coordinates for this country.',
+        errTimezone: 'Could not determine the timezone for this country.',
         errDuplicate: term => `"${term}" has already been added.`,
         errGeneric: 'Something went wrong. Please try again.',
         promptNewName: 'New name for this clock:',
         confirmDelete: 'Remove this clock?',
         loadError: 'Could not load saved clocks. The stored data may be corrupted.',
     },
+};
+
+// Fuso horário IANA representativo (capital) de cada país, por código ISO 3166-1 alpha-2.
+// Evita uma segunda chamada de rede: a Rest Countries já devolve o código do país.
+const COUNTRY_TIMEZONES = {
+    AD: 'Europe/Andorra', AE: 'Asia/Dubai', AF: 'Asia/Kabul', AG: 'America/Antigua',
+    AI: 'America/Anguilla', AL: 'Europe/Tirane', AM: 'Asia/Yerevan', AO: 'Africa/Luanda',
+    AR: 'America/Argentina/Buenos_Aires', AS: 'Pacific/Pago_Pago', AT: 'Europe/Vienna',
+    AU: 'Australia/Sydney', AW: 'America/Aruba', AX: 'Europe/Mariehamn', AZ: 'Asia/Baku',
+    BA: 'Europe/Sarajevo', BB: 'America/Barbados', BD: 'Asia/Dhaka', BE: 'Europe/Brussels',
+    BF: 'Africa/Ouagadougou', BG: 'Europe/Sofia', BH: 'Asia/Bahrain', BI: 'Africa/Bujumbura',
+    BJ: 'Africa/Porto-Novo', BL: 'America/St_Barthelemy', BM: 'Atlantic/Bermuda',
+    BN: 'Asia/Brunei', BO: 'America/La_Paz', BQ: 'America/Kralendijk', BR: 'America/Sao_Paulo',
+    BS: 'America/Nassau', BT: 'Asia/Thimphu', BW: 'Africa/Gaborone', BY: 'Europe/Minsk',
+    BZ: 'America/Belize', CA: 'America/Toronto', CD: 'Africa/Kinshasa', CF: 'Africa/Bangui',
+    CG: 'Africa/Brazzaville', CH: 'Europe/Zurich', CI: 'Africa/Abidjan', CL: 'America/Santiago',
+    CM: 'Africa/Douala', CN: 'Asia/Shanghai', CO: 'America/Bogota', CR: 'America/Costa_Rica',
+    CU: 'America/Havana', CV: 'Atlantic/Cape_Verde', CW: 'America/Curacao', CY: 'Asia/Nicosia',
+    CZ: 'Europe/Prague', DE: 'Europe/Berlin', DJ: 'Africa/Djibouti', DK: 'Europe/Copenhagen',
+    DM: 'America/Dominica', DO: 'America/Santo_Domingo', DZ: 'Africa/Algiers',
+    EC: 'America/Guayaquil', EE: 'Europe/Tallinn', EG: 'Africa/Cairo', ER: 'Africa/Asmara',
+    ES: 'Europe/Madrid', ET: 'Africa/Addis_Ababa', FI: 'Europe/Helsinki', FJ: 'Pacific/Fiji',
+    FK: 'Atlantic/Stanley', FM: 'Pacific/Pohnpei', FO: 'Atlantic/Faroe', FR: 'Europe/Paris',
+    GA: 'Africa/Libreville', GB: 'Europe/London', GD: 'America/Grenada', GE: 'Asia/Tbilisi',
+    GF: 'America/Cayenne', GH: 'Africa/Accra', GI: 'Europe/Gibraltar', GL: 'America/Nuuk',
+    GM: 'Africa/Banjul', GN: 'Africa/Conakry', GP: 'America/Guadeloupe', GQ: 'Africa/Malabo',
+    GR: 'Europe/Athens', GT: 'America/Guatemala', GU: 'Pacific/Guam', GW: 'Africa/Bissau',
+    GY: 'America/Guyana', HK: 'Asia/Hong_Kong', HN: 'America/Tegucigalpa', HR: 'Europe/Zagreb',
+    HT: 'America/Port-au-Prince', HU: 'Europe/Budapest', ID: 'Asia/Jakarta', IE: 'Europe/Dublin',
+    IL: 'Asia/Jerusalem', IM: 'Europe/London', IN: 'Asia/Kolkata', IQ: 'Asia/Baghdad',
+    IR: 'Asia/Tehran', IS: 'Atlantic/Reykjavik', IT: 'Europe/Rome', JE: 'Europe/London',
+    JM: 'America/Jamaica', JO: 'Asia/Amman', JP: 'Asia/Tokyo', KE: 'Africa/Nairobi',
+    KG: 'Asia/Bishkek', KH: 'Asia/Phnom_Penh', KI: 'Pacific/Tarawa', KM: 'Indian/Comoro',
+    KN: 'America/St_Kitts', KP: 'Asia/Pyongyang', KR: 'Asia/Seoul', KW: 'Asia/Kuwait',
+    KY: 'America/Cayman', KZ: 'Asia/Almaty', LA: 'Asia/Vientiane', LB: 'Asia/Beirut',
+    LC: 'America/St_Lucia', LI: 'Europe/Vaduz', LK: 'Asia/Colombo', LR: 'Africa/Monrovia',
+    LS: 'Africa/Maseru', LT: 'Europe/Vilnius', LU: 'Europe/Luxembourg', LV: 'Europe/Riga',
+    LY: 'Africa/Tripoli', MA: 'Africa/Casablanca', MC: 'Europe/Monaco', MD: 'Europe/Chisinau',
+    ME: 'Europe/Podgorica', MF: 'America/Marigot', MG: 'Indian/Antananarivo',
+    MH: 'Pacific/Majuro', MK: 'Europe/Skopje', ML: 'Africa/Bamako', MM: 'Asia/Yangon',
+    MN: 'Asia/Ulaanbaatar', MO: 'Asia/Macau', MQ: 'America/Martinique', MR: 'Africa/Nouakchott',
+    MT: 'Europe/Malta', MU: 'Indian/Mauritius', MV: 'Indian/Maldives', MW: 'Africa/Blantyre',
+    MX: 'America/Mexico_City', MY: 'Asia/Kuala_Lumpur', MZ: 'Africa/Maputo',
+    NA: 'Africa/Windhoek', NC: 'Pacific/Noumea', NE: 'Africa/Niamey', NG: 'Africa/Lagos',
+    NI: 'America/Managua', NL: 'Europe/Amsterdam', NO: 'Europe/Oslo', NP: 'Asia/Kathmandu',
+    NR: 'Pacific/Nauru', NZ: 'Pacific/Auckland', OM: 'Asia/Muscat', PA: 'America/Panama',
+    PE: 'America/Lima', PF: 'Pacific/Tahiti', PG: 'Pacific/Port_Moresby', PH: 'Asia/Manila',
+    PK: 'Asia/Karachi', PL: 'Europe/Warsaw', PR: 'America/Puerto_Rico', PS: 'Asia/Hebron',
+    PT: 'Europe/Lisbon', PW: 'Pacific/Palau', PY: 'America/Asuncion', QA: 'Asia/Qatar',
+    RE: 'Indian/Reunion', RO: 'Europe/Bucharest', RS: 'Europe/Belgrade', RU: 'Europe/Moscow',
+    RW: 'Africa/Kigali', SA: 'Asia/Riyadh', SB: 'Pacific/Guadalcanal', SC: 'Indian/Mahe',
+    SD: 'Africa/Khartoum', SE: 'Europe/Stockholm', SG: 'Asia/Singapore', SI: 'Europe/Ljubljana',
+    SK: 'Europe/Bratislava', SL: 'Africa/Freetown', SM: 'Europe/San_Marino',
+    SN: 'Africa/Dakar', SO: 'Africa/Mogadishu', SR: 'America/Paramaribo', SS: 'Africa/Juba',
+    ST: 'Africa/Sao_Tome', SV: 'America/El_Salvador', SX: 'America/Lower_Princes',
+    SY: 'Asia/Damascus', SZ: 'Africa/Mbabane', TC: 'America/Grand_Turk', TD: 'Africa/Ndjamena',
+    TG: 'Africa/Lome', TH: 'Asia/Bangkok', TJ: 'Asia/Dushanbe', TL: 'Asia/Dili',
+    TM: 'Asia/Ashgabat', TN: 'Africa/Tunis', TO: 'Pacific/Tongatapu', TR: 'Europe/Istanbul',
+    TT: 'America/Port_of_Spain', TV: 'Pacific/Funafuti', TW: 'Asia/Taipei',
+    TZ: 'Africa/Dar_es_Salaam', UA: 'Europe/Kyiv', UG: 'Africa/Kampala', US: 'America/New_York',
+    UY: 'America/Montevideo', UZ: 'Asia/Tashkent', VA: 'Europe/Vatican', VC: 'America/St_Vincent',
+    VE: 'America/Caracas', VG: 'America/Tortola', VI: 'America/St_Thomas', VN: 'Asia/Ho_Chi_Minh',
+    VU: 'Pacific/Efate', WS: 'Pacific/Apia', XK: 'Europe/Belgrade', YE: 'Asia/Aden',
+    YT: 'Indian/Mayotte', ZA: 'Africa/Johannesburg', ZM: 'Africa/Lusaka', ZW: 'Africa/Harare',
 };
 
 // --- ESTADO ---
@@ -200,21 +262,35 @@ async function fetchCountry(term) {
     return data[0];
 }
 
-async function fetchTimezone(lat, lng) {
-    const res = await fetchJSON(
-        `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lng}&current_weather=true&timezone=auto`
-    );
-
-    if (!res.ok) {
-        throw new AppError(t().errTimezone);
+// Resolve o fuso horário do país sem precisar de uma segunda chamada de rede:
+// 1) mapa local (preciso, com horário de verão) ou 2) o campo "timezones" que a
+// própria Rest Countries já devolve (offset fixo, sem horário de verão).
+function resolveTimezone(country) {
+    const ianaZone = COUNTRY_TIMEZONES[country.cca2];
+    if (ianaZone) {
+        return { type: 'iana', timezoneId: ianaZone, label: ianaZone };
     }
 
-    const data = await res.json();
-    if (!data.timezone) {
-        throw new AppError(t().errTimezone);
+    const offsetLabel = Array.isArray(country.timezones) ? country.timezones[0] : null;
+    const offsetMinutes = parseUtcOffset(offsetLabel);
+    if (offsetMinutes !== null) {
+        return { type: 'offset', offsetMinutes, label: offsetLabel };
     }
 
-    return data.timezone;
+    throw new AppError(t().errTimezone);
+}
+
+function parseUtcOffset(label) {
+    if (typeof label !== 'string') return null;
+    if (label.trim().toUpperCase() === 'UTC') return 0;
+
+    const match = /^UTC([+-])(\d{2}):(\d{2})$/.exec(label.trim());
+    if (!match) return null;
+
+    const sign = match[1] === '-' ? -1 : 1;
+    const hours = Number(match[2]);
+    const minutes = Number(match[3]);
+    return sign * (hours * 60 + minutes);
 }
 
 // --- CRUD: CREATE ---
@@ -240,21 +316,9 @@ async function onAddSubmit(event) {
         }
 
         const capitalName = country.capital ? country.capital[0] : (country.translations?.por?.common || country.name.common);
-
-        let lat, lng;
-        if (country.capitalInfo && Array.isArray(country.capitalInfo.latlng)) {
-            [lat, lng] = country.capitalInfo.latlng;
-        } else if (Array.isArray(country.latlng)) {
-            [lat, lng] = country.latlng;
-        }
-
-        if (typeof lat !== 'number' || typeof lng !== 'number') {
-            throw new AppError(t().errNoCoords);
-        }
+        const timezone = resolveTimezone(country);
 
         showStatus(t().found(capitalName), false);
-
-        const timezoneId = await fetchTimezone(lat, lng);
 
         const newClock = {
             id: Date.now(),
@@ -262,7 +326,10 @@ async function onAddSubmit(event) {
             namePt: country.translations?.por?.common || country.name.common,
             nameEn: country.name.common,
             capital: capitalName,
-            timezoneId,
+            tzType: timezone.type,
+            timezoneId: timezone.timezoneId,
+            offsetMinutes: timezone.offsetMinutes,
+            timezoneLabel: timezone.label,
         };
 
         state.clocks.push(newClock);
@@ -299,7 +366,7 @@ function renderClocks() {
     const fragment = document.createDocumentFragment();
 
     state.clocks.forEach(clock => {
-        const timeString = formatTime(clock.timezoneId, dict.locale);
+        const timeString = formatTime(clock, dict.locale);
         const displayName = state.language === 'en' ? (clock.nameEn || clock.namePt) : (clock.namePt || clock.nameEn);
 
         const card = document.createElement('div');
@@ -308,7 +375,7 @@ function renderClocks() {
             <h2>${escapeHtml(displayName)}</h2>
             <p class="capital">${escapeHtml(clock.capital)}</p>
             <div class="time">${timeString}</div>
-            <p class="timezone-info">${escapeHtml(clock.timezoneId)}</p>
+            <p class="timezone-info">${escapeHtml(clock.timezoneLabel || clock.timezoneId)}</p>
             <div class="actions">
                 <button class="btn-edit" data-action="edit" data-id="${clock.id}">${dict.edit}</button>
                 <button class="btn-delete" data-action="delete" data-id="${clock.id}">${dict.delete}</button>
@@ -320,14 +387,20 @@ function renderClocks() {
     elements.app.appendChild(fragment);
 }
 
-function formatTime(timezoneId, locale) {
+function formatTime(clock, locale) {
+    const options = { hour: '2-digit', minute: '2-digit', second: '2-digit' };
+
     try {
-        return new Date().toLocaleTimeString(locale, {
-            timeZone: timezoneId,
-            hour: '2-digit', minute: '2-digit', second: '2-digit',
-        });
+        if (clock.tzType === 'offset') {
+            const now = new Date();
+            const utcMillis = now.getTime() + now.getTimezoneOffset() * 60000;
+            const target = new Date(utcMillis + clock.offsetMinutes * 60000);
+            return target.toLocaleTimeString(locale, { ...options, timeZone: 'UTC' });
+        }
+
+        return new Date().toLocaleTimeString(locale, { ...options, timeZone: clock.timezoneId });
     } catch (error) {
-        console.error('Invalid timezone:', timezoneId, error);
+        console.error('Invalid timezone:', clock, error);
         return '--:--:--';
     }
 }
