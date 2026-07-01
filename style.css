@@ -6,10 +6,11 @@ body { background-color: #f0f2f5; color: #333; display: flex; justify-content: c
 
 header { margin-bottom: 30px; }
 
-.header-top { display: flex; align-items: center; justify-content: center; gap: 15px; position: relative; }
+.header-top { display: flex; align-items: center; justify-content: space-between; gap: 15px; }
+.header-top h1 { flex: 1 1 auto; min-width: 0; text-align: center; }
 
 .btn-lang {
-    position: absolute; right: 0; padding: 6px 14px; font-size: 0.8rem;
+    flex-shrink: 0; white-space: nowrap; padding: 6px 14px; font-size: 0.8rem;
     background-color: transparent; color: #007bff; border: 1px solid #007bff;
 }
 .btn-lang:hover:not(:disabled) { background-color: #007bff; color: white; }
